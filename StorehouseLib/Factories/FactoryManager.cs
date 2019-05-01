@@ -11,7 +11,7 @@ namespace StorehouseLib.Factories
         private Dictionary<Guid, Factory> factories = new Dictionary<Guid, Factory>();
         public List<Guid> Factories { get { return factories.Keys.ToList(); } }
         
-        internal Factory RegisterNewFactory(Factory factory)
+        internal Factory AddFactory(Factory factory)
         {
             factories.Add(factory.ID, factory);
             SortFactories();
@@ -30,7 +30,10 @@ namespace StorehouseLib.Factories
 
         private void SortFactories()
         {
-            factories = factories.OrderBy(x => x.Value.MaxConsumedResourceParentNum).ToDictionary(x => x.Key, x => x.Value);
+            factories = factories.OrderBy(x => x.Value.MaxConsumedResourceParentNum)
+                                .ThenBy(x => x.Value.ConsumerCount)
+                                .ThenBy(x => x.Value.ProviderCount)
+                                .ToDictionary(x => x.Key, x => x.Value);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace StorehouseLib.Resources
         private Dictionary<Guid, Resource> resources = new Dictionary<Guid, Resource>();
         public List<Guid> Resources { get { return resources.Keys.ToList(); } }
 
-        internal Resource RegisterNewResource(Resource resource)
+        internal Resource RegisterResource(Resource resource)
         {
             resources.Add(resource.ID, resource);
             SortResources();

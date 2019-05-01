@@ -11,7 +11,7 @@ namespace StorehouseLib
     public class Storehouse
     {
         public readonly ResourceRegistry ResourceRegistry = new ResourceRegistry();
-        public readonly FactoryManager FactoryRegistry = new FactoryManager();
+        public readonly FactoryManager FactoryManager = new FactoryManager();
 
         private Checkpoint lastCheckpoint;
 
@@ -23,22 +23,22 @@ namespace StorehouseLib
         public Resource RegisterResource(Resource resource)
         {
             lastCheckpoint = new Checkpoint(GetResourceTotals());
-            return ResourceRegistry.RegisterNewResource(resource);
+            return ResourceRegistry.RegisterResource(resource);
         }
 
         public Factory RegisterFactory(Factory factory)
         {
             lastCheckpoint = new Checkpoint(GetResourceTotals());
-            return FactoryRegistry.RegisterNewFactory(factory);
+            return FactoryManager.AddFactory(factory);
         }
         
         public Dictionary<Guid, double> GetResourceTotals()
         {
             Dictionary<Guid, double> resourceTotals = lastCheckpoint.ResourceTotals;
 
-            foreach(Guid factoryID in FactoryRegistry.Factories)
+            foreach(Guid factoryID in FactoryManager.Factories)
             {
-                Factory factory = FactoryRegistry.GetFactory(factoryID);
+                Factory factory = FactoryManager.GetFactory(factoryID);
                 resourceTotals = factory.Produce(lastCheckpoint, resourceTotals);
             }
 

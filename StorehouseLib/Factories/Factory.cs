@@ -15,6 +15,9 @@ namespace StorehouseLib.Factories
         private readonly List<Provider> providers = new List<Provider>();
         private readonly List<Consumer> consumers = new List<Consumer>();
 
+        public int ProviderCount { get { return providers.Count; } }
+        public int ConsumerCount { get { return consumers.Count; } }
+
         public Factory(string name)
         {
             ID = Guid.NewGuid();
@@ -26,7 +29,7 @@ namespace StorehouseLib.Factories
         {
             get
             {
-                int maxResourceParentNum = consumers.Count;
+                int maxResourceParentNum = 0;
                 foreach (Consumer consumer in consumers)
                     maxResourceParentNum = Math.Max(maxResourceParentNum, consumer.Resource.NumParents);
 
