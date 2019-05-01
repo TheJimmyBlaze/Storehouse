@@ -10,39 +10,80 @@ namespace StorehouseLib
 {
     public class Storehouse
     {
+        #region Event Handlers
+        public class CheckpointUpdateEventArgs: EventArgs
+        {
+            public Checkpoint Checkpoint { get; set; }
+        }
+        public EventHandler<CheckpointUpdateEventArgs> CheckpointUpdateEventHandler;
+        #endregion
+
         public readonly ResourceRegistry ResourceRegistry = new ResourceRegistry();
         public readonly FactoryManager FactoryManager = new FactoryManager();
 
-        private Checkpoint lastCheckpoint;
+        public Checkpoint LastCheckpoint { get; set; }
 
-        public Storehouse()
+        public Storehouse() { }
+
+        public void InitializeCheckpoint(List<ResourceAmount> startingResources)
         {
-            lastCheckpoint = new Checkpoint(new Dictionary<Guid, double>());
+            LastCheckpoint = new Checkpoint(startingResources);
         }
 
         public Resource RegisterResource(Resource resource)
         {
-            lastCheckpoint = new Checkpoint(GetResourceTotals());
             return ResourceRegistry.RegisterResource(resource);
         }
 
-        public Factory RegisterFactory(Factory factory)
+        public Factory RegisterFactory(Factory factory, bool fromLoad = false)
         {
-            lastCheckpoint = new Checkpoint(GetResourceTotals());
-            return FactoryManager.AddFactory(factory);
+            Factory registeredFactory = FactoryManager.AddFactory(factory);
+            if (!fromLoad)
+                UpdateCheckpoint(new Checkpoint(GetResourceAmounts()));
+
+            return registeredFactory;
         }
-        
-        public Dictionary<Guid, double> GetResourceTotals()
+
+        public bool ConsumeResource(ResourceAmount consumption, bool simulated)
         {
-            Dictionary<Guid, double> resourceTotals = lastCheckpoint.ResourceTotals;
+            List<ResourceAmount> currentAmounts = GetResourceAmounts();
+            foreach(ResourceAmount currentAmount in currentAmounts)
+            {
+                if (currentAmount.Resource.ID == consumption.Resource.ID)
+                {
+                    if (currentAmount.Count >= consumption.Count)
+                    {
+                        if (!simulated)
+                        {
+                            currentAmount.Count -= consumption.Count;
+                            UpdateCheckpoint(new Checkpoint(currentAmounts));
+                        }
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void UpdateCheckpoint(Checkpoint checkpoint)
+        {
+            LastCheckpoint = checkpoint;
+            CheckpointUpdateEventArgs e = new CheckpointUpdateEventArgs() { Checkpoint = LastCheckpoint };
+            CheckpointUpdateEventHandler?.Invoke(this, e);
+        }
+
+        public List<ResourceAmount> GetResourceAmounts()
+        {
+            List<ResourceAmount> resourceTotals = LastCheckpoint.ResourceTotals;
+            Dictionary<Guid, double> resourceDictionary = resourceTotals.ToDictionary(x => x.Resource.ID, x => x.Count);
 
             foreach(Guid factoryID in FactoryManager.Factories)
             {
                 Factory factory = FactoryManager.GetFactory(factoryID);
-                resourceTotals = factory.Produce(lastCheckpoint, resourceTotals);
+                resourceDictionary = factory.Produce(LastCheckpoint, resourceDictionary);
             }
 
-            return resourceTotals;
+            return resourceDictionary.Select(x => new ResourceAmount(ResourceRegistry.GetResource(x.Key), x.Value)).ToList();
         }
     }
 }

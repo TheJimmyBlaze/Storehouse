@@ -1,4 +1,5 @@
-﻿using System;
+﻿using StorehouseLib.Resources;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,25 +9,46 @@ namespace StorehouseLib
 {
     public class Checkpoint
     {
-        public readonly DateTime CheckpointTimeUTC;
-        private readonly Dictionary<Guid, double> resourceTotals;
-        public Dictionary<Guid, double> ResourceTotals
+        public DateTime CheckpointTimeUTC { get; set; }
+        private List<ResourceAmount> resourceTotals;
+        public List<ResourceAmount> ResourceTotals
         {
             get
             {
-                Dictionary<Guid, double> returnValue = new Dictionary<Guid, double>();
-                foreach(KeyValuePair<Guid, double> pair in resourceTotals)
-                {
-                    returnValue.Add(pair.Key, pair.Value);
-                }
-                return returnValue;
+                if (resourceTotals == null)
+                    return null;
+
+                ResourceAmount[] copy = new ResourceAmount[resourceTotals.Count];
+                resourceTotals.CopyTo(copy);
+                return copy.ToList();
+            }
+            set
+            {
+                resourceTotals = value;
             }
         }
 
-        public Checkpoint(Dictionary<Guid, double> resourceTotals)
+        public Checkpoint() { }
+
+        public Checkpoint(List<ResourceAmount> resourceTotals)
         {
             CheckpointTimeUTC = DateTime.UtcNow;
             this.resourceTotals = resourceTotals;
+        }
+
+        public Checkpoint(DateTime checkpointTimeUTC, List<ResourceAmount> resourceTotals, ResourceRegistry resourceRegistry)
+        {
+            CheckpointTimeUTC = checkpointTimeUTC;
+            this.resourceTotals = new List<ResourceAmount>();
+
+            foreach(ResourceAmount resourceCollection in resourceTotals)
+            {
+                try
+                {
+                    Resource resource = resourceRegistry.GetResource(resourceCollection.Resource.Name);
+                    this.resourceTotals.Add(new ResourceAmount(resource, resourceCollection.Count));
+                } catch (ArgumentException) { }
+            }            
         }
     }
 }

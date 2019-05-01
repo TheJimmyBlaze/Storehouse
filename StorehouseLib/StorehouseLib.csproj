@@ -48,6 +48,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Factories\Provider.cs" />
     <Compile Include="Resources\Resource.cs" />
+    <Compile Include="Resources\ResourceAmount.cs" />
     <Compile Include="Resources\ResourceRegistry.cs" />
     <Compile Include="Storehouse.cs" />
   </ItemGroup>
