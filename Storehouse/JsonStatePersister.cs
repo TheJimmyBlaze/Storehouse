@@ -12,8 +12,13 @@ namespace Storehouse
 {
     public class JsonStatePersister : IStatePersister
     {
-        public const string CHECKPOINT_FILE_NAME = "StorehouseCheckpointData.json";
-        public const string FACTORY_FILE_NAME = "StorehouseFactoryData.csv";
+        private class StateStorage
+        {
+            public ResourceCheckpoint ResourceCheckpoint { get; set; }
+            public FactoryManager FactoryManager { get; set; }
+        }
+
+        public const string FILE_NAME = "StorehouseData.json";
 
         public readonly string directoryPath;
 
@@ -31,37 +36,34 @@ namespace Storehouse
 
         public void Save(ResourceCheckpoint resourceCheckpoint, FactoryManager factoryManager)
         {
-            SaveCheckpoint(directoryPath, resourceCheckpoint);
-        }
+            string path = string.Format(@"{0}{1}", directoryPath, FILE_NAME);
+            StateStorage storage = new StateStorage()
+            {
+                ResourceCheckpoint = resourceCheckpoint,
+                FactoryManager = factoryManager
+            };
 
-        public State Load(ResourceRegistry resourceRegistry)
-        {
-            ResourceCheckpoint checkpoint = LoadCheckpoint(directoryPath, resourceRegistry);
-        }
-
-        private static void SaveCheckpoint(string directoryPath, ResourceCheckpoint resourceCheckpoint)
-        {
-            string path = string.Format(@"{0}{1}", directoryPath, CHECKPOINT_FILE_NAME);
             using (FileStream fileStream = new FileStream(path, FileMode.Create))
             {
                 using (StreamWriter writer = new StreamWriter(fileStream))
                 {
-                    writer.Write(JsonConvert.SerializeObject(resourceCheckpoint, Formatting.Indented));
+                    writer.Write(JsonConvert.SerializeObject(storage, Formatting.Indented));
                 }
             }
         }
 
-        private static ResourceCheckpoint LoadCheckpoint(string directoryPath, ResourceRegistry resourceRegistry)
+        public State Load(ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry)
         {
-            string path = string.Format(@"{0}{1}", directoryPath, CHECKPOINT_FILE_NAME);
+            string path = string.Format(@"{0}{1}", directoryPath, FILE_NAME);
+            StateStorage storage = null;
+
             try
             {
                 using (FileStream fileStream = new FileStream(path, FileMode.Open))
                 {
                     using (StreamReader reader = new StreamReader(fileStream))
                     {
-                        ResourceCheckpoint loadedCheckpoint = JsonConvert.DeserializeObject<ResourceCheckpoint>(reader.ReadToEnd());
-                        return new ResourceCheckpoint(loadedCheckpoint.CheckpointTimeUTC, loadedCheckpoint.ResourceAmounts, resourceRegistry);
+                        storage  = JsonConvert.DeserializeObject<StateStorage>(reader.ReadToEnd());
                     }
                 }
             }
@@ -69,73 +71,15 @@ namespace Storehouse
             {
                 throw new FileNotFoundException(string.Format("An existing save file could not be found to load at: {0}", path));
             }
-        }
 
-        private static void SaveFactories(string directoryPath, FactoryManager factoryManager)
-        {
-            string path = string.Format(@"{0}{1}", directoryPath, FACTORY_FILE_NAME);
+            ResourceCheckpoint checkpoint = new ResourceCheckpoint(storage.ResourceCheckpoint.CheckpointTimeUTC,
+                                                                    storage.ResourceCheckpoint.ResourceAmounts,
+                                                                    resourceRegistry);
 
-            Dictionary<Guid, int> uniqueFactories = new Dictionary<Guid, int>();
-            foreach (Factory factory in factoryManager.Factories)
-            {
-                if (!uniqueFactories.ContainsKey(factory.id))
-                {
-                    uniqueFactories.Add(factory.id, 1);
-                    continue;
-                }
+            FactoryManager manager = new FactoryManager(storage.FactoryManager.FactoryAmounts,
+                                                        factoryRegistry);
 
-                if (uniqueFactories.TryGetValue(factory.id, out int count))
-                    count++;
-                else
-                    throw new InvalidOperationException("Attempt to get the value of an impossibly non-existant factory?");
-            }
-
-            using (FileStream fileStream = new FileStream(path, FileMode.Create))
-            {
-                using (StreamWriter writer = new StreamWriter(fileStream))
-                {
-                    foreach(KeyValuePair<Guid, int> uniqueFactory in uniqueFactories)
-                    {
-                        writer.WriteLine(string.Format("{0}, {1}", uniqueFactories.Keys, uniqueFactories.Values));
-                    }
-                }
-            }
-        }
-
-        private static void LoadFactories()
-        {
-            try
-            {
-                using (FileStream fileStream = new FileStream(FACTORY_SAVE_PATH, FileMode.Open))
-                {
-                    using (StreamReader reader = new StreamReader(fileStream))
-                    {
-                        while (!reader.EndOfStream)
-                        {
-                            string line = reader.ReadLine();
-                            switch (line)
-                            {
-                                case "Town Hall":
-                                    CreateTownHall(true);
-                                    break;
-                                case "Forestry Camp":
-                                    CreateForestryCamp(true);
-                                    break;
-                                case "Farm":
-                                    CreateFarm(true);
-                                    break;
-                                case "Lumber Mill":
-                                    CreateLumberMill(true);
-                                    break;
-                                case "Bakery":
-                                    CreateBakery(true);
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (FileNotFoundException) { }
+            return new State(this, checkpoint, manager);
         }
     }
 }

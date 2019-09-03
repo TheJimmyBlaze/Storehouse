@@ -15,9 +15,6 @@ namespace Test
 {
     class Program
     {
-        private const string CHECKPOINT_SAVE_PATH = "Checkpoint.json";
-        private const string FACTORY_SAVE_PATH = "Factory.csv";
-
         public static Resource Worker;
         public static Resource Wood;
         public static Resource Stone;
@@ -25,6 +22,12 @@ namespace Test
         public static Resource Planks;
         public static Resource Blocks;
         public static Resource Bread;
+
+        public static Factory TownHall;
+        public static Factory ForestryCamp;
+        public static Factory Farm;
+        public static Factory LumberMill;
+        public static Factory Bakery;
 
         public static Store Store { get; set; }
 
@@ -41,11 +44,20 @@ namespace Test
             Blocks = Store.RegisterResource(new Resource("Blocks", Stone));
             Bread = Store.RegisterResource(new Resource("Bread", Wheat));
 
-            LoadCheckpoint();
-            LoadFactories();
+            TownHall = RegisterTownHall();
+            ForestryCamp = RegisterForestryCamp();
+            Farm = RegisterFarm();
+            LumberMill = RegisterLumberMill();
+            Bakery = RegisterBakery();
 
-            if (Store.LastCheckpoint == null)
+            try
+            {
+                Store.Load();
+            }
+            catch (FileNotFoundException)
+            {
                 SetStartingResource();
+            }
 
             Task.Run(() => Print(Store));
 
@@ -56,19 +68,19 @@ namespace Test
                 switch (input.KeyChar)
                 {
                     case 't':
-                        CreateTownHall();
+                        Store.AddFactory(TownHall);
                         break;
                     case 'w':
-                        CreateForestryCamp();
+                        Store.AddFactory(ForestryCamp);
                         break;
                     case 'f':
-                        CreateFarm();
+                        Store.AddFactory(Farm);
                         break;
                     case 'l':
-                        CreateLumberMill();
+                        Store.AddFactory(LumberMill);
                         break;
                     case 'b':
-                        CreateBakery();
+                        Store.AddFactory(Bakery);
                         break;
                 }
             }
@@ -83,10 +95,16 @@ namespace Test
                 new ResourceAmount(Wood, 100d)
             };
             Store.InitializeCheckpoint(startingResouces);
-            SaveCheckpoint();
 
-            CreateTownHall(true);
-            SaveFactories();
+            List<FactoryAmount> startingFactories = new List<FactoryAmount>
+            {
+                new FactoryAmount(TownHall, 1),
+                new FactoryAmount(ForestryCamp, 2),
+                new FactoryAmount(Farm, 3)
+            };
+            Store.InitializeFactoryManager(startingFactories);
+
+            Store.Save();
         }
 
         private static void Print(Store storehouse)
@@ -110,9 +128,9 @@ namespace Test
 
                 Console.WriteLine();
                 Console.WriteLine("Factories:");
-                foreach (Factory factory in storehouse.FactoryManager.Factories)
+                foreach (FactoryAmount factoryAmount in storehouse.FactoryManager.FactoryAmounts)
                 {
-                    Console.WriteLine("{0}: {1}", factory.name, string.Join(", ", factory.cost.Select(x => string.Format("{0} {1}", x.Count, x.Resource.name))));
+                    Console.WriteLine("{0}: {1}", factoryAmount.Factory.name, factoryAmount.Count);
                 }
 
                 lastPrint = DateTime.UtcNow;
@@ -121,12 +139,11 @@ namespace Test
 
         private static void OnCheckpointUpdated(object sender, CheckpointUpdateEventArgs e)
         {
-            SaveCheckpoint();
-            SaveFactories();
+            Store.Save();
         }
 
         #region Factory Creators
-        private static Factory CreateTownHall(bool fromLoad = false)
+        private static Factory RegisterTownHall()
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {
@@ -138,13 +155,10 @@ namespace Test
             List<Provider> providers = new List<Provider>() { new Provider(Worker, 0.01d) };
 
             Factory townHall = new Factory("Town Hall", cost, consumers, providers);
-
-            if (fromLoad)
-                return Store.LoadFactory(townHall);
-            return Store.AddFactory(townHall);
+            return Store.RegisterFactory(townHall);
         }
 
-        private static Factory CreateForestryCamp(bool fromLoad = false)
+        private static Factory RegisterForestryCamp(bool fromLoad = false)
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {
@@ -156,14 +170,10 @@ namespace Test
             List<Provider> providers = new List<Provider>() { new Provider(Wood, 0.2d) };
 
             Factory forestryCamp = new Factory("Forestry Camp", cost, consumers, providers);
-            forestryCamp.AddProvider(Wood, 0.2d);
-
-            if (fromLoad)
-                return Store.LoadFactory(forestryCamp);
-            return Store.AddFactory(forestryCamp);
+            return Store.RegisterFactory(forestryCamp);
         }
 
-        private static Factory CreateFarm(bool fromLoad = false)
+        private static Factory RegisterFarm(bool fromLoad = false)
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {
@@ -175,13 +185,10 @@ namespace Test
             List<Provider> providers = new List<Provider>() { new Provider(Wheat, 0.05d) };
 
             Factory farm = new Factory("Farm", cost, consumers, providers);
-
-            if (fromLoad)
-                return Store.LoadFactory(farm);
-            return Store.AddFactory(farm);
+            return Store.RegisterFactory(farm);
         }
 
-        private static Factory CreateLumberMill(bool fromLoad = false)
+        private static Factory RegisterLumberMill(bool fromLoad = false)
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {
@@ -193,13 +200,10 @@ namespace Test
             List<Provider> providers = new List<Provider>() { new Provider(Planks, 0.5d) };
 
             Factory lumberMill = new Factory("Lumber Mill", cost, consumers, providers);
-
-            if (fromLoad)
-                return Store.LoadFactory(lumberMill);
-            return Store.AddFactory(lumberMill);
+            return Store.RegisterFactory(lumberMill);
         }
 
-        private static Factory CreateBakery(bool fromLoad = false)
+        private static Factory RegisterBakery(bool fromLoad = false)
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {
@@ -211,10 +215,7 @@ namespace Test
             List<Provider> providers = new List<Provider>() { new Provider(Bread, 0.25d) };
 
             Factory bakery = new Factory("Bakery", cost, consumers, providers);
-
-            if (fromLoad)
-                return Store.LoadFactory(bakery);
-            return Store.AddFactory(bakery);
+            return Store.RegisterFactory(bakery);
         }
         #endregion
     }

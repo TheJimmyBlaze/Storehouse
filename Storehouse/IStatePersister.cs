@@ -12,6 +12,6 @@ namespace Storehouse
     {
         void Save(ResourceCheckpoint resourceCheckpoint, FactoryManager factoryManager);
 
-        State Load();
+        State Load(ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry);
     }
 }

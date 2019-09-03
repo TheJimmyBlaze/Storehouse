@@ -10,42 +10,32 @@ namespace Storehouse
 {
     public class State
     {
-        private ResourceCheckpoint lastCheckpoint = null;
-        internal ResourceCheckpoint LastCheckpoint
-        {
-            get
-            {
-                if (lastCheckpoint == null)
-                    throw new Exception("Resource Checkpoint has not been instanciated, or loaded with any values.");
-                return lastCheckpoint;
-            }
-            set { lastCheckpoint = value; }
-        }
-
-        internal readonly FactoryManager factoryManager;
+        public ResourceCheckpoint LastCheckpoint { get; set; }
+        public FactoryManager FactoryManager { get; set; }
 
         private readonly IStatePersister persister;
 
         public State(IStatePersister persister)
         {
-            factoryManager = new FactoryManager();
             this.persister = persister;
         }
 
-        public State(ResourceCheckpoint lastCheckpoint, FactoryManager factoryManager)
+        public State(IStatePersister persister, ResourceCheckpoint lastCheckpoint, FactoryManager factoryManager)
         {
+            this.persister = persister;
+
             LastCheckpoint = lastCheckpoint;
-            this.factoryManager = factoryManager;
+            FactoryManager = factoryManager;
         }
 
         public void Save()
         {
-            persister.Save(lastCheckpoint, factoryManager);
+            persister.Save(LastCheckpoint, FactoryManager);
         }
 
-        public static State Load(IStatePersister persister)
+        public static State Load(IStatePersister persister, ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry)
         {
-            return persister.Load();
+            return persister.Load(resourceRegistry, factoryRegistry);
         }
     }
 }

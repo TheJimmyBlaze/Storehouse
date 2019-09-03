@@ -9,26 +9,26 @@ namespace Storehouse.Factories
 {
     public class FactoryManager
     {
-        public Dictionary<Guid, FactoryAmount> FactoryAmounts { get; set; } = new Dictionary<Guid, FactoryAmount>();
+        public List<FactoryAmount> FactoryAmounts { get; set; } = new List<FactoryAmount>();
 
         public FactoryManager() { }
 
         public FactoryManager(List<FactoryAmount> factoryAmounts)
         {
-            FactoryAmounts = factoryAmounts.ToDictionary(x => x.Factory.id, x => x);
+            FactoryAmounts = factoryAmounts;
             SortFactoryAmounts();
         } 
 
         public FactoryManager(List<FactoryAmount> factoryAmounts, FactoryRegistry factoryRegistry)
         {
-            FactoryAmounts = new Dictionary<Guid, FactoryAmount>();
+            FactoryAmounts = new List<FactoryAmount>();
 
             foreach (FactoryAmount factoryAmount in factoryAmounts)
             {
                 try
                 {
                     Factory factory = factoryRegistry.GetFactory(factoryAmount.Factory.name);
-                    FactoryAmounts.Add(factory.id, new FactoryAmount(factory, factoryAmount.Count));
+                    FactoryAmounts.Add(new FactoryAmount(factory, factoryAmount.Count));
                 }
                 catch (ArgumentException) { }
             }
@@ -37,40 +37,39 @@ namespace Storehouse.Factories
 
         internal Factory AddFactory(Factory factory)
         {
-            if (!FactoryAmounts.ContainsKey(factory.id))
+            if (FactoryAmounts.Where(x => x.Factory.id == x.Factory.id).Count() == 0)
             {
-                FactoryAmounts.Add(factory.id, new FactoryAmount(factory, 1));
+                FactoryAmounts.Add(new FactoryAmount(factory, 1));
                 SortFactoryAmounts();
 
                 return factory;
             }
 
-            if (FactoryAmounts.TryGetValue(factory.id, out FactoryAmount factoryAmount))
-                factoryAmount.Count++;
+            FactoryAmount factoryAmount = FactoryAmounts.Single(x => x.Factory.id == factory.id);
+            factoryAmount.Count++;
 
             return factory;
         }
 
         public FactoryAmount GetFactoryAmount(Guid id)
         {
-            FactoryAmounts.TryGetValue(id, out FactoryAmount factory);
-            if (factory == null)
+            FactoryAmount factoryAmount = FactoryAmounts.SingleOrDefault(x => x.Factory.id == id);
+            if (factoryAmount == null)
                 throw new ArgumentException(string.Format("FactoryAmount could not be found with ID: {0}", id));
 
-            return factory;
+            return factoryAmount;
         }
 
         private void SortFactoryAmounts()
         {
-            FactoryAmounts = FactoryAmounts.OrderBy(x => x.Value.Factory.MaxConsumedResourceParentNum)
-                                        .ThenBy(x => x.Value.Factory.ConsumerCount)
-                                        .ThenBy(x => x.Value.Factory.ProviderCount)
-                                        .ToDictionary(x => x.Key, x => x.Value);
+            FactoryAmounts = FactoryAmounts.OrderBy(x => x.Factory.MaxConsumedResourceParentNum)
+                                        .ThenBy(x => x.Factory.ConsumerCount)
+                                        .ThenBy(x => x.Factory.ProviderCount).ToList();
         }
 
         public Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals)
         {
-            foreach(FactoryAmount factoryAmount in FactoryAmounts.Values)
+            foreach(FactoryAmount factoryAmount in FactoryAmounts)
                 resourceTotals = factoryAmount.Produce(lastCheckpoint, resourceTotals);
             return resourceTotals;
         }

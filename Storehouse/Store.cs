@@ -19,26 +19,51 @@ namespace Storehouse
         #endregion
 
         public readonly ResourceRegistry resourceRegistry;
+        public readonly FactoryRegistry factoryRegistry;
 
-        internal readonly State state;
+        private State State { get; set; }
+        private readonly IStatePersister statePersister;
 
-        public FactoryManager FactoryManager { get { return state.factoryManager; } }
-        public ResourceCheckpoint LastCheckpoint { get { return state.LastCheckpoint; } }
+        public FactoryManager FactoryManager { get { return State.FactoryManager; } }
+        public ResourceCheckpoint LastCheckpoint { get { return State.LastCheckpoint; } }
 
         public Store(IStatePersister statePersister)
         {
             resourceRegistry = new ResourceRegistry();
-            state = new State(statePersister);
+            factoryRegistry = new FactoryRegistry();
+
+            this.statePersister = statePersister;
+            State = new State(statePersister);
+        }
+
+        public void Save()
+        {
+            State.Save();
+        }
+
+        public void Load()
+        {
+            State = State.Load(statePersister, resourceRegistry, factoryRegistry);
         }
 
         public void InitializeCheckpoint(List<ResourceAmount> startingResources)
         {
-            state.LastCheckpoint = new ResourceCheckpoint(startingResources);
+            State.LastCheckpoint = new ResourceCheckpoint(startingResources);
+        }
+
+        public void InitializeFactoryManager(List<FactoryAmount> startingFactories)
+        {
+            State.FactoryManager = new FactoryManager(startingFactories);
         }
 
         public Resource RegisterResource(Resource resource)
         {
             return resourceRegistry.RegisterResource(resource);
+        }
+
+        public Factory RegisterFactory(Factory factory)
+        {
+            return factoryRegistry.RegisterFactory(factory);
         }
 
         public Factory AddFactory(Factory factory)
@@ -47,7 +72,10 @@ namespace Storehouse
             foreach(ResourceAmount resource in factory.cost)
             {
                 if (!ConsumeResource(resource, true))
+                {
                     canAfford = false;
+                    break;
+                }
             }
 
             if (canAfford)
@@ -55,7 +83,7 @@ namespace Storehouse
                 foreach (ResourceAmount resource in factory.cost)
                     ConsumeResource(resource, false);
 
-                Factory newFactory = state.factoryManager.AddFactory(factory);
+                Factory newFactory = State.FactoryManager.AddFactory(factory);
                 UpdateCheckpoint(new ResourceCheckpoint(GetResourceAmounts()));
 
                 return newFactory;
@@ -65,7 +93,7 @@ namespace Storehouse
 
         public Factory LoadFactory(Factory factory)
         {
-            return state.factoryManager.AddFactory(factory);
+            return State.FactoryManager.AddFactory(factory);
         }
 
         public bool ConsumeResource(ResourceAmount consumption, bool simulated)
@@ -91,7 +119,7 @@ namespace Storehouse
 
         private void UpdateCheckpoint(ResourceCheckpoint checkpoint)
         {
-            state.LastCheckpoint = checkpoint;
+            State.LastCheckpoint = checkpoint;
             CheckpointUpdateEventArgs e = new CheckpointUpdateEventArgs() { Checkpoint = LastCheckpoint };
             CheckpointUpdateEventHandler?.Invoke(this, e);
         }
@@ -101,7 +129,7 @@ namespace Storehouse
             List<ResourceAmount> resourceAmounts = LastCheckpoint.ResourceAmounts;
             Dictionary<Guid, double> resourceDictionary = resourceAmounts.ToDictionary(x => x.Resource.id, x => x.Count);
 
-            resourceDictionary = state.factoryManager.Produce(LastCheckpoint, resourceDictionary);
+            resourceDictionary = State.FactoryManager.Produce(LastCheckpoint, resourceDictionary);
 
             return resourceDictionary.Select(x => new ResourceAmount(resourceRegistry.GetResource(x.Key), x.Value)).ToList();
         }
