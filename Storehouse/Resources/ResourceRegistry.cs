@@ -4,19 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StorehouseLib.Resources
+namespace Storehouse.Resources
 {
     public class ResourceRegistry
     {
         private Dictionary<Guid, Resource> resources = new Dictionary<Guid, Resource>();
-        public List<Guid> Resources { get { return resources.Keys.ToList(); } }
+        public List<Resource> Resources { get { return resources.Values.ToList(); } }
 
         internal Resource RegisterResource(Resource resource)
         {
-            if (resources.SingleOrDefault(x => x.Value.Name == resource.Name).Value != null)
-                throw new ArgumentException(string.Format("A resource already exists with Name: {0}", resource.Name));
+            if (resources.SingleOrDefault(x => x.Value.name == resource.name).Value != null)
+                throw new ArgumentException(string.Format("A resource already exists with Name: {0}", resource.name));
 
-            resources.Add(resource.ID, resource);
+            resources.Add(resource.id, resource);
             SortResources();
 
             return resource;
@@ -33,7 +33,7 @@ namespace StorehouseLib.Resources
 
         public Resource GetResource(string name)
         {
-            Resource resource = resources.SingleOrDefault(x => x.Value.Name == name).Value;
+            Resource resource = resources.SingleOrDefault(x => x.Value.name == name).Value;
             if (resource == null)
                 throw new ArgumentException(string.Format("Resource could not be found with Name: {0}", name));
 
@@ -42,7 +42,7 @@ namespace StorehouseLib.Resources
 
         private void SortResources()
         {
-            resources = resources.OrderBy(x => x.Value.NumParents).ThenBy(x => x.Value.Name).ToDictionary(x => x.Key, x => x.Value);
+            resources = resources.OrderBy(x => x.Value.NumParents).ThenBy(x => x.Value.name).ToDictionary(x => x.Key, x => x.Value);
         }
     }
 }

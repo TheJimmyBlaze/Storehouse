@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
-using StorehouseLib;
-using StorehouseLib.Factories;
-using StorehouseLib.Resources;
+using Storehouse;
+using Storehouse.Factories;
+using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static StorehouseLib.Storehouse;
+using static Storehouse.Store;
 
 namespace Test
 {
@@ -26,28 +26,28 @@ namespace Test
         public static Resource Blocks;
         public static Resource Bread;
 
-        public static Storehouse Storehouse { get; set; }
+        public static Store Store { get; set; }
 
         static void Main(string[] args)
         {
-            Storehouse = new Storehouse();
-            Storehouse.CheckpointUpdateEventHandler += OnCheckpointUpdated;
+            Store = new Store(new JsonStatePersister(null));
+            Store.CheckpointUpdateEventHandler += OnCheckpointUpdated;
 
-            Worker = Storehouse.RegisterResource(new Resource("Worker", null));
-            Wood = Storehouse.RegisterResource(new Resource("Wood", null));
-            Stone = Storehouse.RegisterResource(new Resource("Stone", null));
-            Wheat = Storehouse.RegisterResource(new Resource("Wheat", null));
-            Planks = Storehouse.RegisterResource(new Resource("Planks", Wood));
-            Blocks = Storehouse.RegisterResource(new Resource("Blocks", Stone));
-            Bread = Storehouse.RegisterResource(new Resource("Bread", Wheat));
+            Worker = Store.RegisterResource(new Resource("Worker", null));
+            Wood = Store.RegisterResource(new Resource("Wood", null));
+            Stone = Store.RegisterResource(new Resource("Stone", null));
+            Wheat = Store.RegisterResource(new Resource("Wheat", null));
+            Planks = Store.RegisterResource(new Resource("Planks", Wood));
+            Blocks = Store.RegisterResource(new Resource("Blocks", Stone));
+            Bread = Store.RegisterResource(new Resource("Bread", Wheat));
 
             LoadCheckpoint();
             LoadFactories();
 
-            if (Storehouse.LastCheckpoint == null)
+            if (Store.LastCheckpoint == null)
                 SetStartingResource();
 
-            Task.Run(() => Print(Storehouse));
+            Task.Run(() => Print(Store));
 
             while (true)
             {
@@ -82,14 +82,14 @@ namespace Test
                 new ResourceAmount(Bread, 50d),
                 new ResourceAmount(Wood, 100d)
             };
-            Storehouse.InitializeCheckpoint(startingResouces);
+            Store.InitializeCheckpoint(startingResouces);
             SaveCheckpoint();
 
             CreateTownHall(true);
             SaveFactories();
         }
 
-        private static void Print(Storehouse storehouse)
+        private static void Print(Store storehouse)
         {
             DateTime lastPrint = DateTime.UtcNow;
             while (true)
@@ -100,96 +100,23 @@ namespace Test
                 Console.CursorTop = 0;
                 Console.CursorLeft = 0;
 
-                List<ResourceAmount> resourceTotals = storehouse.GetResourceAmounts();
+                List<ResourceAmount> resourceAmounts = storehouse.GetResourceAmounts();
 
-                foreach (ResourceAmount resourceCollection in resourceTotals)
+                Console.WriteLine("Resources:");
+                foreach (ResourceAmount resourceCollection in resourceAmounts)
                 {
-                    Console.WriteLine("{0}: {1}", resourceCollection.Resource.Name, resourceCollection.Count.ToString("0.0").PadRight(16));
+                    Console.WriteLine("{0}: {1}", resourceCollection.Resource.name, resourceCollection.Count.ToString("0.0").PadRight(16));
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("Factories:");
+                foreach (Factory factory in storehouse.FactoryManager.Factories)
+                {
+                    Console.WriteLine("{0}: {1}", factory.name, string.Join(", ", factory.cost.Select(x => string.Format("{0} {1}", x.Count, x.Resource.name))));
                 }
 
                 lastPrint = DateTime.UtcNow;
             }
-        }
-
-        private static void SaveCheckpoint()
-        {
-            using (FileStream fileStream = new FileStream(CHECKPOINT_SAVE_PATH, FileMode.Create))
-            {
-                using (StreamWriter writer = new StreamWriter(fileStream))
-                {
-                    writer.Write(JsonConvert.SerializeObject(Storehouse.LastCheckpoint, Formatting.Indented));
-                }
-            }
-        }
-
-        private static void LoadCheckpoint()
-        {
-            try
-            {
-                using (FileStream fileStream = new FileStream(CHECKPOINT_SAVE_PATH, FileMode.Open))
-                {
-                    using (StreamReader reader = new StreamReader(fileStream))
-                    {
-                        Checkpoint loadedCheckpoint = JsonConvert.DeserializeObject<Checkpoint>(reader.ReadToEnd());
-                        Storehouse.LastCheckpoint = new Checkpoint(loadedCheckpoint.CheckpointTimeUTC, loadedCheckpoint.ResourceTotals, Storehouse.ResourceRegistry);
-                    }
-                }
-            }
-            catch (FileNotFoundException) { }
-        }
-
-        private static void SaveFactories()
-        {
-            using (FileStream fileStream = new FileStream(FACTORY_SAVE_PATH, FileMode.Create))
-            {
-                using (StreamWriter writer = new StreamWriter(fileStream))
-                {
-                    foreach(Guid factoryID in Storehouse.FactoryManager.Factories)
-                    {
-                        string[] saveData = new string[]
-                        {
-                            Storehouse.FactoryManager.GetFactory(factoryID).Name
-                        };
-                        writer.WriteLine(string.Join(",", saveData));
-                    }
-                }
-            }
-        }
-
-        private static void LoadFactories()
-        {
-            try
-            {
-                using (FileStream fileStream = new FileStream(FACTORY_SAVE_PATH, FileMode.Open))
-                {
-                    using (StreamReader reader = new StreamReader(fileStream))
-                    {
-                        while (!reader.EndOfStream)
-                        {
-                            string line = reader.ReadLine();
-                            switch (line)
-                            {
-                                case "Town Hall":
-                                    CreateTownHall(true);
-                                    break;
-                                case "Forestry Camp":
-                                    CreateForestryCamp(true);
-                                    break;
-                                case "Farm":
-                                    CreateFarm(true);
-                                    break;
-                                case "Lumber Mill":
-                                    CreateLumberMill(true);
-                                    break;
-                                case "Bakery":
-                                    CreateBakery(true);
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (FileNotFoundException) { }
         }
 
         private static void OnCheckpointUpdated(object sender, CheckpointUpdateEventArgs e)
@@ -199,113 +126,95 @@ namespace Test
         }
 
         #region Factory Creators
-        private static void CreateTownHall(bool fromLoad = false)
+        private static Factory CreateTownHall(bool fromLoad = false)
         {
-            Factory townHall = new Factory("Town Hall");
-            townHall.AddConsumer(Bread, 0.1d);
-            townHall.AddProvider(Worker, 0.01d);
+            List<ResourceAmount> cost = new List<ResourceAmount>()
+            {
+                new ResourceAmount(Planks, 200d),
+                new ResourceAmount(Bread, 150d)
+            };
+
+            List<Consumer> consumers = new List<Consumer>() { new Consumer(Bread, 0.1d) };
+            List<Provider> providers = new List<Provider>() { new Provider(Worker, 0.01d) };
+
+            Factory townHall = new Factory("Town Hall", cost, consumers, providers);
 
             if (fromLoad)
-            {
-                Storehouse.RegisterFactory(townHall, fromLoad);
-                return;
-            }
-
-            ResourceAmount plankCost = new ResourceAmount(Planks, 200d);
-            ResourceAmount breadCost = new ResourceAmount(Bread, 150d);
-            if (Storehouse.ConsumeResource(plankCost, true) && Storehouse.ConsumeResource(breadCost, true))
-            {
-                Storehouse.ConsumeResource(plankCost, false);
-                Storehouse.ConsumeResource(breadCost, false);
-                Storehouse.RegisterFactory(townHall);
-            }
+                return Store.LoadFactory(townHall);
+            return Store.AddFactory(townHall);
         }
 
-        private static void CreateForestryCamp(bool fromLoad = false)
+        private static Factory CreateForestryCamp(bool fromLoad = false)
         {
-            Factory forestryCamp = new Factory("Forestry Camp");
+            List<ResourceAmount> cost = new List<ResourceAmount>()
+            {
+                new ResourceAmount(Wood, 50d),
+                new ResourceAmount(Worker, 1d)
+            };
+
+            List<Consumer> consumers = new List<Consumer>() { };
+            List<Provider> providers = new List<Provider>() { new Provider(Wood, 0.2d) };
+
+            Factory forestryCamp = new Factory("Forestry Camp", cost, consumers, providers);
             forestryCamp.AddProvider(Wood, 0.2d);
 
             if (fromLoad)
-            {
-                Storehouse.RegisterFactory(forestryCamp, fromLoad);
-                return;
-            }
-
-            ResourceAmount woodCost = new ResourceAmount(Wood, 50d);
-            ResourceAmount workerCost = new ResourceAmount(Worker, 1d);
-            if (Storehouse.ConsumeResource(woodCost, true) && Storehouse.ConsumeResource(workerCost, true))
-            {
-                Storehouse.ConsumeResource(woodCost, false);
-                Storehouse.ConsumeResource(workerCost, false);
-                Storehouse.RegisterFactory(forestryCamp);
-            }
+                return Store.LoadFactory(forestryCamp);
+            return Store.AddFactory(forestryCamp);
         }
 
-        private static void CreateFarm(bool fromLoad = false)
+        private static Factory CreateFarm(bool fromLoad = false)
         {
-            Factory farm = new Factory("Farm");
-            farm.AddProvider(Wheat, 0.05d);
+            List<ResourceAmount> cost = new List<ResourceAmount>()
+            {
+                new ResourceAmount(Wood, 100d),
+                new ResourceAmount(Worker, 1d)
+            };
+
+            List<Consumer> consumers = new List<Consumer>() { };
+            List<Provider> providers = new List<Provider>() { new Provider(Wheat, 0.05d) };
+
+            Factory farm = new Factory("Farm", cost, consumers, providers);
 
             if (fromLoad)
-            {
-                Storehouse.RegisterFactory(farm, fromLoad);
-                return;
-            }
-
-            ResourceAmount woodCost = new ResourceAmount(Wood, 100d);
-            ResourceAmount workerCost = new ResourceAmount(Worker, 1d);
-            if (Storehouse.ConsumeResource(woodCost, true) && Storehouse.ConsumeResource(workerCost, true))
-            {
-                Storehouse.ConsumeResource(woodCost, false);
-                Storehouse.ConsumeResource(workerCost, false);
-                Storehouse.RegisterFactory(farm);
-            }
+                return Store.LoadFactory(farm);
+            return Store.AddFactory(farm);
         }
 
-        private static void CreateLumberMill(bool fromLoad = false)
+        private static Factory CreateLumberMill(bool fromLoad = false)
         {
-            Factory lumberMill = new Factory("Lumber Mill");
-            lumberMill.AddConsumer(Wood, 0.1d);
-            lumberMill.AddProvider(Planks, 0.5d);
+            List<ResourceAmount> cost = new List<ResourceAmount>()
+            {
+                new ResourceAmount(Wood, 100d),
+                new ResourceAmount(Worker, 2d)
+            };
+
+            List<Consumer> consumers = new List<Consumer>() { new Consumer(Wood, 0.1d) };
+            List<Provider> providers = new List<Provider>() { new Provider(Planks, 0.5d) };
+
+            Factory lumberMill = new Factory("Lumber Mill", cost, consumers, providers);
 
             if (fromLoad)
-            {
-                Storehouse.RegisterFactory(lumberMill, fromLoad);
-                return;
-            }
-
-            ResourceAmount woodCost = new ResourceAmount(Wood, 100d);
-            ResourceAmount workerCost = new ResourceAmount(Worker, 2d);
-            if (Storehouse.ConsumeResource(woodCost, true) && Storehouse.ConsumeResource(workerCost, true))
-            {
-                Storehouse.ConsumeResource(woodCost, false);
-                Storehouse.ConsumeResource(workerCost, false);
-                Storehouse.RegisterFactory(lumberMill);
-            }
+                return Store.LoadFactory(lumberMill);
+            return Store.AddFactory(lumberMill);
         }
 
-        private static void CreateBakery(bool fromLoad = false)
+        private static Factory CreateBakery(bool fromLoad = false)
         {
-            Factory bakery = new Factory("Bakery");
-            bakery.AddConsumer(Wheat, 0.5d);
-            bakery.AddConsumer(Wood, 0.01d);
-            bakery.AddProvider(Bread, 0.25d);
+            List<ResourceAmount> cost = new List<ResourceAmount>()
+            {
+                new ResourceAmount(Planks, 50d),
+                new ResourceAmount(Worker, 1d)
+            };
+
+            List<Consumer> consumers = new List<Consumer>() { new Consumer(Wheat, 0.5d), new Consumer(Wood, 0.01d) };
+            List<Provider> providers = new List<Provider>() { new Provider(Bread, 0.25d) };
+
+            Factory bakery = new Factory("Bakery", cost, consumers, providers);
 
             if (fromLoad)
-            {
-                Storehouse.RegisterFactory(bakery, fromLoad);
-                return;
-            }
-
-            ResourceAmount plankCost = new ResourceAmount(Planks, 50d);
-            ResourceAmount workerCost = new ResourceAmount(Worker, 1d);
-            if (Storehouse.ConsumeResource(plankCost, true) && Storehouse.ConsumeResource(workerCost, true))
-            {
-                Storehouse.ConsumeResource(plankCost, false);
-                Storehouse.ConsumeResource(workerCost, false);
-                Storehouse.RegisterFactory(bakery);
-            }
+                return Store.LoadFactory(bakery);
+            return Store.AddFactory(bakery);
         }
         #endregion
     }

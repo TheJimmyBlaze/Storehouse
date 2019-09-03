@@ -4,16 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StorehouseLib.Factories
+namespace Storehouse.Factories
 {
-    public class FactoryManager
+    public class FactoryRegistry
     {
         private Dictionary<Guid, Factory> factories = new Dictionary<Guid, Factory>();
-        public List<Guid> Factories { get { return factories.Keys.ToList(); } }
-        
-        internal Factory AddFactory(Factory factory)
+        public List<Factory> Factories { get { return factories.Values.ToList(); } }
+
+        internal Factory RegisterFactory(Factory factory)
         {
-            factories.Add(factory.ID, factory);
+            if (factories.SingleOrDefault(x => x.Value.name == factory.name).Value != null)
+                throw new ArgumentException(string.Format("A factory already exists with the Name: {0}", factory.name));
+
+            factories.Add(factory.id, factory);
             SortFactories();
 
             return factory;
@@ -24,6 +27,15 @@ namespace StorehouseLib.Factories
             factories.TryGetValue(id, out Factory factory);
             if (factory == null)
                 throw new ArgumentException(string.Format("Factory could not be found with ID: {0}", id));
+
+            return factory;
+        }
+
+        public Factory GetFactory(string name)
+        {
+            Factory factory = factories.SingleOrDefault(x => x.Value.name == name).Value;
+            if (factory == null)
+                throw new ArgumentException(string.Format("Factory could not be found with the Name: {0}", name));
 
             return factory;
         }

@@ -1,20 +1,20 @@
-﻿using StorehouseLib.Resources;
+﻿using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StorehouseLib.Factories
+namespace Storehouse.Factories
 {
-    internal class Consumer
+    public class Consumer
     {
-        public readonly Resource Resource;
+        public readonly Resource resource;
         public double ConsumptionPerSecond { get; private set; }
 
         public Consumer(Resource resource, double consumptionPerSecond)
         {
-            Resource = resource;
+            this.resource = resource;
             ConsumptionPerSecond = consumptionPerSecond;
         }
 

@@ -7,8 +7,8 @@
     <ProjectGuid>{A7DB8294-BEEA-4154-81C9-3D67786C546B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>StorehouseLib</RootNamespace>
-    <AssemblyName>StorehouseLib</AssemblyName>
+    <RootNamespace>Storehouse</RootNamespace>
+    <AssemblyName>Storehouse</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -31,6 +31,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -41,7 +44,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Checkpoint.cs" />
+    <Compile Include="Factories\FactoryAmount.cs" />
+    <Compile Include="Factories\FactoryRegistry.cs" />
+    <Compile Include="IStatePersister.cs" />
+    <Compile Include="JsonStatePersister.cs" />
+    <Compile Include="Resources\ResourceCheckpoint.cs" />
     <Compile Include="Factories\Consumer.cs" />
     <Compile Include="Factories\Factory.cs" />
     <Compile Include="Factories\FactoryManager.cs" />
@@ -50,7 +57,11 @@
     <Compile Include="Resources\Resource.cs" />
     <Compile Include="Resources\ResourceAmount.cs" />
     <Compile Include="Resources\ResourceRegistry.cs" />
-    <Compile Include="Storehouse.cs" />
+    <Compile Include="State.cs" />
+    <Compile Include="Store.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

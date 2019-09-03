@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.572
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29209.62
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StorehouseLib", "StorehouseLib\StorehouseLib.csproj", "{A7DB8294-BEEA-4154-81C9-3D67786C546B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Storehouse", "Storehouse\Storehouse.csproj", "{A7DB8294-BEEA-4154-81C9-3D67786C546B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{6E562CB9-A34B-43B1-B7D9-4BC68443319E}"
 EndProject

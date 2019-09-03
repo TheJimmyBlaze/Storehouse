@@ -54,9 +54,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\StorehouseLib\StorehouseLib.csproj">
-      <Project>{A7DB8294-BEEA-4154-81C9-3D67786C546B}</Project>
-      <Name>StorehouseLib</Name>
+    <ProjectReference Include="..\Storehouse\Storehouse.csproj">
+      <Project>{a7db8294-beea-4154-81c9-3d67786c546b}</Project>
+      <Name>Storehouse</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

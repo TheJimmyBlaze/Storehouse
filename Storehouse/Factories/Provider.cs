@@ -1,20 +1,20 @@
-﻿using StorehouseLib.Resources;
+﻿using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StorehouseLib.Factories
+namespace Storehouse.Factories
 {
-    internal class Provider
+    public class Provider
     {
-        public readonly Resource Resource;
+        public readonly Resource resource;
         public double ProvisionPerSecond { get; private set; }
 
         public Provider(Resource resource, double provisionPerSecond)
         {
-            Resource = resource;
+            this.resource = resource;
             ProvisionPerSecond = provisionPerSecond;
         }
 

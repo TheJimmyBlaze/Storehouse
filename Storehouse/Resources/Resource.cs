@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StorehouseLib.Resources
+namespace Storehouse.Resources
 {
     public class Resource
     {
-        public readonly Guid ID;
-        public readonly string Name;
-        public readonly Resource Parent;
+        public readonly Guid id;
+        public readonly string name;
+        public readonly Resource parent;
 
         public int Max { get; private set; }
 
@@ -19,10 +19,10 @@ namespace StorehouseLib.Resources
             get
             {
                 int numParents = 0;
-                if (Parent != null)
+                if (parent != null)
                 {
                     numParents++;
-                    numParents += Parent.NumParents;
+                    numParents += parent.NumParents;
                 }
 
                 return numParents;
@@ -31,10 +31,10 @@ namespace StorehouseLib.Resources
 
         public Resource(string name, Resource parent)
         {
-            ID = Guid.NewGuid();
+            id = Guid.NewGuid();
 
-            Name = name;
-            Parent = parent;
+            this.name = name;
+            this.parent = parent;
         }
     }
 }
