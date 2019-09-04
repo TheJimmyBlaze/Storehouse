@@ -8,21 +8,15 @@ using Newtonsoft.Json;
 using Storehouse.Factories;
 using Storehouse.Resources;
 
-namespace Storehouse
+namespace Storehouse.IO
 {
-    public class JsonStatePersister : IStatePersister
+    public class JsonStoreIO : IStoreIO
     {
-        private class StateStorage
-        {
-            public ResourceCheckpoint ResourceCheckpoint { get; set; }
-            public FactoryManager FactoryManager { get; set; }
-        }
-
-        public const string FILE_NAME = "StorehouseData.json";
+        public const string FILE_NAME = "StorehouseSaveStateData.json";
 
         public readonly string directoryPath;
 
-        public JsonStatePersister(string directoryPath)
+        public JsonStoreIO(string directoryPath)
         {
             if (!string.IsNullOrEmpty(directoryPath))
             {
@@ -34,28 +28,23 @@ namespace Storehouse
             this.directoryPath = directoryPath;
         }
 
-        public void Save(ResourceCheckpoint resourceCheckpoint, FactoryManager factoryManager)
+        public void Save(StoreSaveState saveState)
         {
             string path = string.Format(@"{0}{1}", directoryPath, FILE_NAME);
-            StateStorage storage = new StateStorage()
-            {
-                ResourceCheckpoint = resourceCheckpoint,
-                FactoryManager = factoryManager
-            };
 
             using (FileStream fileStream = new FileStream(path, FileMode.Create))
             {
                 using (StreamWriter writer = new StreamWriter(fileStream))
                 {
-                    writer.Write(JsonConvert.SerializeObject(storage, Formatting.Indented));
+                    writer.Write(JsonConvert.SerializeObject(saveState, Formatting.Indented));
                 }
             }
         }
 
-        public State Load(ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry)
+        public StoreSaveState Load(ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry)
         {
             string path = string.Format(@"{0}{1}", directoryPath, FILE_NAME);
-            StateStorage storage = null;
+            StoreSaveState storage = null;
 
             try
             {
@@ -63,7 +52,7 @@ namespace Storehouse
                 {
                     using (StreamReader reader = new StreamReader(fileStream))
                     {
-                        storage  = JsonConvert.DeserializeObject<StateStorage>(reader.ReadToEnd());
+                        storage  = JsonConvert.DeserializeObject<StoreSaveState>(reader.ReadToEnd());
                     }
                 }
             }
@@ -79,7 +68,7 @@ namespace Storehouse
             FactoryManager manager = new FactoryManager(storage.FactoryManager.FactoryAmounts,
                                                         factoryRegistry);
 
-            return new State(this, checkpoint, manager);
+            return new StoreSaveState() { ResourceCheckpoint = checkpoint, FactoryManager = manager };
         }
     }
 }

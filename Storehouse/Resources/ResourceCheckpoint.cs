@@ -12,7 +12,6 @@ namespace Storehouse.Resources
         public DateTime CheckpointTimeUTC { get; set; }
 
         private List<ResourceAmount> resourceAmounts;
-        //Returns a deep copy of the resource amounts, so they can be mutated by the caller without affecting the checkpoint.
         public List<ResourceAmount> ResourceAmounts
         {
             get

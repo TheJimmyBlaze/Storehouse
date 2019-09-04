@@ -1,4 +1,5 @@
 ﻿using Storehouse.Factories;
+using Storehouse.IO;
 using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
@@ -10,50 +11,43 @@ namespace Storehouse
 {
     public class Store
     {
-        #region Event Handlers
-        public class CheckpointUpdateEventArgs: EventArgs
-        {
-            public ResourceCheckpoint Checkpoint { get; set; }
-        }
-        public EventHandler<CheckpointUpdateEventArgs> CheckpointUpdateEventHandler;
-        #endregion
-
         public readonly ResourceRegistry resourceRegistry;
         public readonly FactoryRegistry factoryRegistry;
 
-        private State State { get; set; }
-        private readonly IStatePersister statePersister;
+        private readonly IStoreIO storeIO;
 
-        public FactoryManager FactoryManager { get { return State.FactoryManager; } }
-        public ResourceCheckpoint LastCheckpoint { get { return State.LastCheckpoint; } }
+        public ResourceCheckpoint ResourceCheckpoint { get; set; }
+        public FactoryManager FactoryManager { get; set; }
 
-        public Store(IStatePersister statePersister)
+        public Store(IStoreIO storeIO)
         {
             resourceRegistry = new ResourceRegistry();
             factoryRegistry = new FactoryRegistry();
 
-            this.statePersister = statePersister;
-            State = new State(statePersister);
+            this.storeIO = storeIO;
         }
 
         public void Save()
         {
-            State.Save();
+            StoreSaveState saveState = new StoreSaveState() { ResourceCheckpoint = ResourceCheckpoint, FactoryManager = FactoryManager };
+            storeIO.Save(saveState);
         }
 
         public void Load()
         {
-            State = State.Load(statePersister, resourceRegistry, factoryRegistry);
+            StoreSaveState saveState = storeIO.Load(resourceRegistry, factoryRegistry);
+            ResourceCheckpoint = saveState.ResourceCheckpoint;
+            FactoryManager = saveState.FactoryManager;
         }
 
         public void InitializeCheckpoint(List<ResourceAmount> startingResources)
         {
-            State.LastCheckpoint = new ResourceCheckpoint(startingResources);
+            ResourceCheckpoint = new ResourceCheckpoint(startingResources);
         }
 
         public void InitializeFactoryManager(List<FactoryAmount> startingFactories)
         {
-            State.FactoryManager = new FactoryManager(startingFactories);
+            FactoryManager = new FactoryManager(startingFactories);
         }
 
         public Resource RegisterResource(Resource resource)
@@ -68,6 +62,9 @@ namespace Storehouse
 
         public Factory AddFactory(Factory factory)
         {
+            if (!factoryRegistry.Factories.Contains(factory))
+                throw new ArgumentException("Factory: {0} not contained in the FactoryRegistry.", factory.name);
+
             bool canAfford = true;
             foreach(ResourceAmount resource in factory.cost)
             {
@@ -83,7 +80,7 @@ namespace Storehouse
                 foreach (ResourceAmount resource in factory.cost)
                     ConsumeResource(resource, false);
 
-                Factory newFactory = State.FactoryManager.AddFactory(factory);
+                Factory newFactory = FactoryManager.AddFactory(factory);
                 UpdateCheckpoint(new ResourceCheckpoint(GetResourceAmounts()));
 
                 return newFactory;
@@ -93,7 +90,7 @@ namespace Storehouse
 
         public Factory LoadFactory(Factory factory)
         {
-            return State.FactoryManager.AddFactory(factory);
+            return FactoryManager.AddFactory(factory);
         }
 
         public bool ConsumeResource(ResourceAmount consumption, bool simulated)
@@ -119,17 +116,16 @@ namespace Storehouse
 
         private void UpdateCheckpoint(ResourceCheckpoint checkpoint)
         {
-            State.LastCheckpoint = checkpoint;
-            CheckpointUpdateEventArgs e = new CheckpointUpdateEventArgs() { Checkpoint = LastCheckpoint };
-            CheckpointUpdateEventHandler?.Invoke(this, e);
+            ResourceCheckpoint = checkpoint;
+            Save();
         }
 
         public List<ResourceAmount> GetResourceAmounts()
         {
-            List<ResourceAmount> resourceAmounts = LastCheckpoint.ResourceAmounts;
+            List<ResourceAmount> resourceAmounts = ResourceCheckpoint.ResourceAmounts;
             Dictionary<Guid, double> resourceDictionary = resourceAmounts.ToDictionary(x => x.Resource.id, x => x.Count);
 
-            resourceDictionary = State.FactoryManager.Produce(LastCheckpoint, resourceDictionary);
+            resourceDictionary = FactoryManager.Produce(ResourceCheckpoint, resourceDictionary);
 
             return resourceDictionary.Select(x => new ResourceAmount(resourceRegistry.GetResource(x.Key), x.Value)).ToList();
         }

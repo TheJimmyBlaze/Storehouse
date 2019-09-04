@@ -1,4 +1,5 @@
-﻿using Storehouse.Resources;
+﻿using Newtonsoft.Json;
+using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,16 +10,16 @@ namespace Storehouse.Factories
 {
     public class Factory
     {
-        public readonly Guid id;
+        [JsonIgnore] public readonly Guid id;
         public readonly string name;
 
-        public readonly List<ResourceAmount> cost;
+        [JsonIgnore] public readonly List<ResourceAmount> cost;
 
-        public readonly List<Consumer> consumers;
-        public readonly List<Provider> providers;
+        [JsonIgnore] public readonly List<Consumer> consumers;
+        [JsonIgnore] public readonly List<Provider> providers;
 
-        public int ConsumerCount { get { return consumers.Count; } }
-        public int ProviderCount { get { return providers.Count; } }
+        [JsonIgnore] public int ConsumerCount { get { return consumers.Count; } }
+        [JsonIgnore] public int ProviderCount { get { return providers.Count; } }
 
         public Factory(string name, List<ResourceAmount> cost, List<Consumer> consumers, List<Provider> providers)
         {
@@ -30,6 +31,7 @@ namespace Storehouse.Factories
             this.providers = providers;
         }
 
+        [JsonIgnore]
         public int MaxConsumedResourceParentNum
         {
             get

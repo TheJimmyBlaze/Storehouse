@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Storehouse;
 using Storehouse.Factories;
+using Storehouse.IO;
 using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
@@ -33,8 +34,7 @@ namespace Test
 
         static void Main(string[] args)
         {
-            Store = new Store(new JsonStatePersister(null));
-            Store.CheckpointUpdateEventHandler += OnCheckpointUpdated;
+            Store = new Store(new JsonStoreIO(null));
 
             Worker = Store.RegisterResource(new Resource("Worker", null));
             Wood = Store.RegisterResource(new Resource("Wood", null));
@@ -120,26 +120,21 @@ namespace Test
 
                 List<ResourceAmount> resourceAmounts = storehouse.GetResourceAmounts();
 
-                Console.WriteLine("Resources:");
+                Console.WriteLine("Resources:".PadRight(24));
                 foreach (ResourceAmount resourceCollection in resourceAmounts)
                 {
                     Console.WriteLine("{0}: {1}", resourceCollection.Resource.name, resourceCollection.Count.ToString("0.0").PadRight(16));
                 }
 
-                Console.WriteLine();
-                Console.WriteLine("Factories:");
+                Console.WriteLine("".PadRight(24));
+                Console.WriteLine("Factories:".PadRight(24));
                 foreach (FactoryAmount factoryAmount in storehouse.FactoryManager.FactoryAmounts)
                 {
-                    Console.WriteLine("{0}: {1}", factoryAmount.Factory.name, factoryAmount.Count);
+                    Console.WriteLine("{0}: {1}", factoryAmount.Factory.name, factoryAmount.Count.ToString("0.0").PadRight(16));
                 }
 
                 lastPrint = DateTime.UtcNow;
             }
-        }
-
-        private static void OnCheckpointUpdated(object sender, CheckpointUpdateEventArgs e)
-        {
-            Store.Save();
         }
 
         #region Factory Creators
@@ -158,7 +153,7 @@ namespace Test
             return Store.RegisterFactory(townHall);
         }
 
-        private static Factory RegisterForestryCamp(bool fromLoad = false)
+        private static Factory RegisterForestryCamp()
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {
@@ -173,7 +168,7 @@ namespace Test
             return Store.RegisterFactory(forestryCamp);
         }
 
-        private static Factory RegisterFarm(bool fromLoad = false)
+        private static Factory RegisterFarm()
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {
@@ -188,7 +183,7 @@ namespace Test
             return Store.RegisterFactory(farm);
         }
 
-        private static Factory RegisterLumberMill(bool fromLoad = false)
+        private static Factory RegisterLumberMill()
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {
@@ -203,7 +198,7 @@ namespace Test
             return Store.RegisterFactory(lumberMill);
         }
 
-        private static Factory RegisterBakery(bool fromLoad = false)
+        private static Factory RegisterBakery()
         {
             List<ResourceAmount> cost = new List<ResourceAmount>()
             {

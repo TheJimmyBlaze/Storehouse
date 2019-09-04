@@ -37,7 +37,7 @@ namespace Storehouse.Factories
 
         internal Factory AddFactory(Factory factory)
         {
-            if (FactoryAmounts.Where(x => x.Factory.id == x.Factory.id).Count() == 0)
+            if (FactoryAmounts.Where(x => x.Factory.id == factory.id).Count() == 0)
             {
                 FactoryAmounts.Add(new FactoryAmount(factory, 1));
                 SortFactoryAmounts();

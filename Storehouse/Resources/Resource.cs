@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,12 +9,11 @@ namespace Storehouse.Resources
 {
     public class Resource
     {
-        public readonly Guid id;
+        [JsonIgnore] public readonly Guid id;
+        [JsonIgnore] public readonly Resource parent;
         public readonly string name;
-        public readonly Resource parent;
 
-        public int Max { get; private set; }
-
+        [JsonIgnore]
         public int NumParents
         {
             get
