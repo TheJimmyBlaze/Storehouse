@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Storehouse.Buffs;
 using Storehouse.Factories;
 using Storehouse.Resources;
 
@@ -41,7 +42,7 @@ namespace Storehouse.IO
             }
         }
 
-        public StoreSaveState Load(ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry)
+        public StoreSaveState Load(ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry, BuffRegistry buffRegistry)
         {
             string path = string.Format(@"{0}{1}", directoryPath, FILE_NAME);
             StoreSaveState storage = null;
@@ -65,10 +66,10 @@ namespace Storehouse.IO
                                                                     storage.ResourceCheckpoint.ResourceAmounts,
                                                                     resourceRegistry);
 
-            FactoryManager manager = new FactoryManager(storage.FactoryManager.FactoryAmounts,
-                                                        factoryRegistry);
+            FactoryManager factoryManager = new FactoryManager(storage.FactoryManager.FactoryAmounts, factoryRegistry);
+            BuffManager buffManager = new BuffManager(storage.BuffManager.BuffDurations, buffRegistry);
 
-            return new StoreSaveState() { ResourceCheckpoint = checkpoint, FactoryManager = manager };
+            return new StoreSaveState() { ResourceCheckpoint = checkpoint, FactoryManager = factoryManager, BuffManager = buffManager };
         }
     }
 }

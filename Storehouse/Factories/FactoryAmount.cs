@@ -1,4 +1,5 @@
-﻿using Storehouse.Resources;
+﻿using Storehouse.Buffs;
+using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,10 +21,10 @@ namespace Storehouse.Factories
             Count = count;
         }
 
-        public Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals)
+        public Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals, BuffManager buffManager)
         {
             for(int i = 0; i < Count; i++)
-                resourceTotals = Factory.Produce(lastCheckpoint, resourceTotals);
+                resourceTotals = Factory.Produce(lastCheckpoint, resourceTotals, buffManager);
             return resourceTotals;
         }
     }

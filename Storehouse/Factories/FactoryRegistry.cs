@@ -13,7 +13,7 @@ namespace Storehouse.Factories
 
         internal Factory RegisterFactory(Factory factory)
         {
-            if (factories.SingleOrDefault(x => x.Value.name == factory.name).Value != null)
+            if (factories.Where(x => x.Value.name == factory.name).Count() > 0)
                 throw new ArgumentException(string.Format("A factory already exists with the Name: {0}", factory.name));
 
             factories.Add(factory.id, factory);

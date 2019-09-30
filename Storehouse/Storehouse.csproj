@@ -44,6 +44,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Buffs\Buff.cs" />
+    <Compile Include="Buffs\BuffDuration.cs" />
+    <Compile Include="Buffs\BuffManager.cs" />
+    <Compile Include="Buffs\BuffRegistry.cs" />
     <Compile Include="Factories\FactoryAmount.cs" />
     <Compile Include="Factories\FactoryRegistry.cs" />
     <Compile Include="IO\IStoreIO.cs" />
@@ -63,5 +67,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

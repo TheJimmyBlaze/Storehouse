@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Storehouse.Buffs;
 using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
@@ -70,7 +71,7 @@ namespace Storehouse.Factories
             providers.Add(new Provider(resource, provisionPerSecond));
         }
 
-        internal Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals)
+        internal Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals, BuffManager buffManager)
         {
             DateTime checkpointTimeUTC = lastCheckpoint.CheckpointTimeUTC;
 
@@ -110,13 +111,15 @@ namespace Storehouse.Factories
                 else
                     provision = operationalSeconds * provider.ProvisionPerSecond;
 
+                double buffedProvision = buffManager.GetBuffedAmount(new ResourceAmount(provider.resource, provision), lastCheckpoint);
+
                 Resource resource = provider.resource;
                 resourceTotals.TryGetValue(resource.id, out double resourceCount);
 
                 if (resourceTotals.ContainsKey(resource.id))
-                    resourceTotals[resource.id] = resourceCount + provision;
+                    resourceTotals[resource.id] = resourceCount + buffedProvision;
                 else
-                    resourceTotals.Add(resource.id, resourceCount + provision);
+                    resourceTotals.Add(resource.id, resourceCount + buffedProvision);
             }
 
             return resourceTotals;

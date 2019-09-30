@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Storehouse;
+using Storehouse.Buffs;
 using Storehouse.Factories;
 using Storehouse.IO;
 using Storehouse.Resources;
@@ -30,6 +31,9 @@ namespace Test
         public static Factory LumberMill;
         public static Factory Bakery;
 
+        public static Buff BonusWood;
+        public static Buff UberWood;
+
         public static Store Store { get; set; }
 
         static void Main(string[] args)
@@ -49,6 +53,9 @@ namespace Test
             Farm = RegisterFarm();
             LumberMill = RegisterLumberMill();
             Bakery = RegisterBakery();
+
+            BonusWood = Store.RegisterBuff(new Buff("Bonus Wood", Wood, 10, new TimeSpan(0, 0, 10)));
+            UberWood = Store.RegisterBuff(new Buff("Uber Wood", Wood, 100, new TimeSpan(0, 0, 5)));
 
             try
             {
@@ -82,6 +89,15 @@ namespace Test
                     case 'b':
                         Store.AddFactory(Bakery);
                         break;
+                    case 'p':
+                        Store.ProvideResource(new ResourceAmount(Worker, 5));
+                        break;
+                    case 'o':
+                        Store.AddBuff(BonusWood);
+                        break;
+                    case 'i':
+                        Store.AddBuff(UberWood);
+                        break;
                 }
             }
         }
@@ -103,6 +119,9 @@ namespace Test
                 new FactoryAmount(Farm, 3)
             };
             Store.InitializeFactoryManager(startingFactories);
+
+            List<BuffDuration> startingBuffs = new List<BuffDuration> { };
+            Store.InitializeBuffManager(startingBuffs);
 
             Store.Save();
         }
@@ -131,6 +150,18 @@ namespace Test
                 foreach (FactoryAmount factoryAmount in storehouse.FactoryManager.FactoryAmounts)
                 {
                     Console.WriteLine("{0}: {1}", factoryAmount.Factory.name, factoryAmount.Count.ToString("0.0").PadRight(16));
+                }
+
+                Console.WriteLine("".PadRight(24));
+                Console.WriteLine("Buffs:".PadRight(24));
+                foreach(BuffDuration buffDuration in storehouse.BuffManager.BuffDurations.Where(x => x.ExpirationTimeUTC > DateTime.UtcNow))
+                {
+                    Console.WriteLine("{0}: {1}s", buffDuration.Buff.name, (buffDuration.ExpirationTimeUTC - DateTime.UtcNow).TotalSeconds);
+                }
+
+                for(int i = 0; i < 5; i++)
+                {
+                    Console.WriteLine("".PadRight(24));
                 }
 
                 lastPrint = DateTime.UtcNow;

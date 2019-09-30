@@ -13,7 +13,7 @@ namespace Storehouse.Resources
 
         internal Resource RegisterResource(Resource resource)
         {
-            if (resources.SingleOrDefault(x => x.Value.name == resource.name).Value != null)
+            if (resources.Where(x => x.Value.name == resource.name).Count() > 0)
                 throw new ArgumentException(string.Format("A resource already exists with Name: {0}", resource.name));
 
             resources.Add(resource.id, resource);
