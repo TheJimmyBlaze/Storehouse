@@ -1,4 +1,4 @@
-﻿using Storehouse.Buffs;
+﻿using Storehouse.Modifiers;
 using Storehouse.Factories;
 using Storehouse.Resources;
 using System;
@@ -13,6 +13,6 @@ namespace Storehouse.IO
     {
         void Save(StoreSaveState saveState);
 
-        StoreSaveState Load(ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry, BuffRegistry buffManager);
+        StoreSaveState Load(ResourceRegistry resourceRegistry, FactoryRegistry factoryRegistry, ModifierRegistry modifierRegistry);
     }
 }

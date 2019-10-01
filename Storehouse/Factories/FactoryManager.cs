@@ -1,4 +1,4 @@
-﻿using Storehouse.Buffs;
+﻿using Storehouse.Modifiers;
 using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
@@ -68,10 +68,10 @@ namespace Storehouse.Factories
                                         .ThenBy(x => x.Factory.ProviderCount).ToList();
         }
 
-        public Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals, BuffManager buffManager)
+        public Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals, ModifierManager modifierManager)
         {
             foreach(FactoryAmount factoryAmount in FactoryAmounts)
-                resourceTotals = factoryAmount.Produce(lastCheckpoint, resourceTotals, buffManager);
+                resourceTotals = factoryAmount.Produce(lastCheckpoint, resourceTotals, modifierManager);
             return resourceTotals;
         }
     }

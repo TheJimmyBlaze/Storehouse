@@ -1,4 +1,4 @@
-﻿using Storehouse.Buffs;
+﻿using Storehouse.Modifiers;
 using Storehouse.Factories;
 using Storehouse.IO;
 using Storehouse.Resources;
@@ -14,19 +14,19 @@ namespace Storehouse
     {
         public readonly ResourceRegistry resourceRegistry;
         public readonly FactoryRegistry factoryRegistry;
-        public readonly BuffRegistry buffRegistry;
+        public readonly ModifierRegistry modifierRegistry;
 
         private readonly IStoreIO storeIO;
 
         public ResourceCheckpoint ResourceCheckpoint { get; set; }
         public FactoryManager FactoryManager { get; set; }
-        public BuffManager BuffManager { get; set; }
+        public ModifierManager ModifierManager { get; set; }
 
         public Store(IStoreIO storeIO)
         {
             resourceRegistry = new ResourceRegistry();
             factoryRegistry = new FactoryRegistry();
-            buffRegistry = new BuffRegistry();
+            modifierRegistry = new ModifierRegistry();
 
             this.storeIO = storeIO;
         }
@@ -37,17 +37,17 @@ namespace Storehouse
             {
                 ResourceCheckpoint = ResourceCheckpoint,
                 FactoryManager = FactoryManager,
-                BuffManager = BuffManager
+                ModiferManager = ModifierManager
             };
             storeIO.Save(saveState);
         }
 
         public void Load()
         {
-            StoreSaveState saveState = storeIO.Load(resourceRegistry, factoryRegistry, buffRegistry);
+            StoreSaveState saveState = storeIO.Load(resourceRegistry, factoryRegistry, modifierRegistry);
             ResourceCheckpoint = saveState.ResourceCheckpoint;
             FactoryManager = saveState.FactoryManager;
-            BuffManager = saveState.BuffManager;
+            ModifierManager = saveState.ModiferManager;
         }
 
         public void InitializeCheckpoint(List<ResourceAmount> startingResources)
@@ -60,9 +60,9 @@ namespace Storehouse
             FactoryManager = new FactoryManager(startingFactories);
         }
 
-        public void InitializeBuffManager(List<BuffDuration> startingBuffs)
+        public void InitializeModifierManager(List<ModifierDuration> startingModifiers)
         {
-            BuffManager = new BuffManager(startingBuffs);
+            ModifierManager = new ModifierManager(startingModifiers);
         }
 
         public Resource RegisterResource(Resource resource)
@@ -75,9 +75,9 @@ namespace Storehouse
             return factoryRegistry.RegisterFactory(factory);
         }
 
-        public Buff RegisterBuff(Buff buff)
+        public Modifier RegisterModifier(Modifier modifier)
         {
-            return buffRegistry.RegisterBuff(buff);
+            return modifierRegistry.RegisterModifier(modifier);
         }
 
         public bool ConsumeResource(ResourceAmount consumption, bool simulated)
@@ -147,18 +147,18 @@ namespace Storehouse
             return FactoryManager.AddFactory(factory);
         }
 
-        public Buff AddBuff(Buff buff)
+        public Modifier AddModifier(Modifier modifier)
         {
             ResourceCheckpoint checkpoint = new ResourceCheckpoint(GetResourceAmounts());
-            Buff addedBuff = BuffManager.AddBuff(buff);
+            Modifier addedModifier = ModifierManager.AddModifier(modifier);
             UpdateCheckpoint(checkpoint);
-            return addedBuff;
+            return addedModifier;
         }
 
         private void UpdateCheckpoint(ResourceCheckpoint checkpoint)
         {
             ResourceCheckpoint = checkpoint;
-            BuffManager.RemoveExpiredBuffs();
+            ModifierManager.RemoveExpiredModifiers();
             Save();
         }
 
@@ -167,7 +167,7 @@ namespace Storehouse
             List<ResourceAmount> resourceAmounts = ResourceCheckpoint.ResourceAmounts;
             Dictionary<Guid, double> resourceDictionary = resourceAmounts.ToDictionary(x => x.Resource.id, x => x.Count);
 
-            resourceDictionary = FactoryManager.Produce(ResourceCheckpoint, resourceDictionary, BuffManager);
+            resourceDictionary = FactoryManager.Produce(ResourceCheckpoint, resourceDictionary, ModifierManager);
 
             return resourceDictionary.Select(x => new ResourceAmount(resourceRegistry.GetResource(x.Key), x.Value)).ToList();
         }

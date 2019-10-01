@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Storehouse;
-using Storehouse.Buffs;
+using Storehouse.Modifiers;
 using Storehouse.Factories;
 using Storehouse.IO;
 using Storehouse.Resources;
@@ -31,8 +31,8 @@ namespace Test
         public static Factory LumberMill;
         public static Factory Bakery;
 
-        public static Buff BonusWood;
-        public static Buff UberWood;
+        public static Modifier BonusWood;
+        public static Modifier UberWood;
 
         public static Store Store { get; set; }
 
@@ -54,8 +54,8 @@ namespace Test
             LumberMill = RegisterLumberMill();
             Bakery = RegisterBakery();
 
-            BonusWood = Store.RegisterBuff(new Buff("Bonus Wood", Wood, 10, new TimeSpan(0, 0, 10)));
-            UberWood = Store.RegisterBuff(new Buff("Uber Wood", Wood, 100, new TimeSpan(0, 0, 5)));
+            BonusWood = Store.RegisterModifier(new Modifier("Bonus Wood", Wood, 10, null));
+            UberWood = Store.RegisterModifier(new Modifier("Uber Wood", Wood, 100, new TimeSpan(0, 0, 5)));
 
             try
             {
@@ -93,10 +93,10 @@ namespace Test
                         Store.ProvideResource(new ResourceAmount(Worker, 5));
                         break;
                     case 'o':
-                        Store.AddBuff(BonusWood);
+                        Store.AddModifier(BonusWood);
                         break;
                     case 'i':
-                        Store.AddBuff(UberWood);
+                        Store.AddModifier(UberWood);
                         break;
                 }
             }
@@ -120,8 +120,8 @@ namespace Test
             };
             Store.InitializeFactoryManager(startingFactories);
 
-            List<BuffDuration> startingBuffs = new List<BuffDuration> { };
-            Store.InitializeBuffManager(startingBuffs);
+            List<ModifierDuration> startingModifiers = new List<ModifierDuration> { };
+            Store.InitializeModifierManager(startingModifiers);
 
             Store.Save();
         }
@@ -153,10 +153,14 @@ namespace Test
                 }
 
                 Console.WriteLine("".PadRight(24));
-                Console.WriteLine("Buffs:".PadRight(24));
-                foreach(BuffDuration buffDuration in storehouse.BuffManager.BuffDurations.Where(x => x.ExpirationTimeUTC > DateTime.UtcNow))
+                Console.WriteLine("Modifiers:".PadRight(24));
+                foreach(ModifierDuration modifierDuration in storehouse.ModifierManager.ModifierDurations.Where(x => x.ExpirationTimeUTC == null || x.ExpirationTimeUTC > DateTime.UtcNow))
                 {
-                    Console.WriteLine("{0}: {1}s", buffDuration.Buff.name, (buffDuration.ExpirationTimeUTC - DateTime.UtcNow).TotalSeconds);
+                    string secondsUntilExpiration = "static";
+                    if (modifierDuration.ExpirationTimeUTC is DateTime expiration)
+                        secondsUntilExpiration = (expiration - DateTime.UtcNow).TotalSeconds + "s";
+
+                    Console.WriteLine("{0}: {1}", modifierDuration.Modifier.name, secondsUntilExpiration);
                 }
 
                 for(int i = 0; i < 5; i++)

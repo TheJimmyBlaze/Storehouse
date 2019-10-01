@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json;
-using Storehouse.Buffs;
+using Storehouse.Modifiers;
 using Storehouse.Resources;
 using System;
 using System.Collections.Generic;
@@ -71,7 +71,7 @@ namespace Storehouse.Factories
             providers.Add(new Provider(resource, provisionPerSecond));
         }
 
-        internal Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals, BuffManager buffManager)
+        internal Dictionary<Guid, double> Produce(ResourceCheckpoint lastCheckpoint, Dictionary<Guid, double> resourceTotals, ModifierManager modifierManager)
         {
             DateTime checkpointTimeUTC = lastCheckpoint.CheckpointTimeUTC;
 
@@ -88,7 +88,7 @@ namespace Storehouse.Factories
                 operationalSeconds = Math.Min(operationalSeconds, consumerOperationalSeconds);
             }
 
-            //Shortcircuit if not operational for any ammount of time.
+            //Shortcircuit if not operational for any amount of time.
             if (operationalSeconds == 0)
                 return resourceTotals;
 
@@ -111,15 +111,15 @@ namespace Storehouse.Factories
                 else
                     provision = operationalSeconds * provider.ProvisionPerSecond;
 
-                double buffedProvision = buffManager.GetBuffedAmount(new ResourceAmount(provider.resource, provision), lastCheckpoint);
+                double modifedProvision = modifierManager.GetModifiedAmount(new ResourceAmount(provider.resource, provision), lastCheckpoint);
 
                 Resource resource = provider.resource;
                 resourceTotals.TryGetValue(resource.id, out double resourceCount);
 
                 if (resourceTotals.ContainsKey(resource.id))
-                    resourceTotals[resource.id] = resourceCount + buffedProvision;
+                    resourceTotals[resource.id] = resourceCount + modifedProvision;
                 else
-                    resourceTotals.Add(resource.id, resourceCount + buffedProvision);
+                    resourceTotals.Add(resource.id, resourceCount + modifedProvision);
             }
 
             return resourceTotals;
